@@ -42,4 +42,29 @@ task exportPluginJar() {
     }
 }
 
+task deployPluginToDirectory() {
+    group "Corona-dev"
+    dependsOn assemble
+    doLast {
+        copy {
+            from {
+                zipTree("$buildDir/outputs/aar/${project.name}-release.aar").matching {
+                    include 'classes.jar'
+                }.singleFile
+            }
+            into "$buildDir/outputs/../../../../../plugins/2013.2090/android/"
+
+            File pluginManifestFile = file("src/main/AndroidManifest.xml")
+            if (pluginManifestFile.exists()) {
+                String manifestContents = pluginManifestFile.text
+                def pluginManifestXml = new XmlSlurper().parseText(manifestContents)
+                String packageName = pluginManifestXml.@package.toString()
+                rename "classes.jar", "${packageName}.jar"
+            } else {
+                rename "classes.jar", "plugin.jar"
+            }
+        }
+    }
+}
+
 assemble.finalizedBy(exportPluginJar)
