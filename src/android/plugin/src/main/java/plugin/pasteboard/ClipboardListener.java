@@ -49,16 +49,18 @@ public class ClipboardListener {
         CoronaActivity coronaActivity = CoronaEnvironment.getCoronaActivity();
         if (coronaActivity == null) return;
 
-        if (primaryClipChangedListener == null) {
-            primaryClipChangedListener = new android.content.ClipboardManager.OnPrimaryClipChangedListener() {
-                public void onPrimaryClipChanged() {
-                    setNewPasteboardItem(context);
-                }
-            };
-        }
-
         coronaActivity.runOnUiThread(new Runnable() {
             public void run() {
+
+                if (primaryClipChangedListener == null) {
+                    primaryClipChangedListener = new android.content.ClipboardManager.OnPrimaryClipChangedListener() {
+                        public void onPrimaryClipChanged() {
+                            setNewPasteboardItem(context);
+                        }
+                    };
+                }
+
+
                 // Grab the initial clipboard contents and put them in pasteboard, if any.
                 setNewPasteboardItem(context);
                 clipboardManager.addPrimaryClipChangedListener(primaryClipChangedListener);
