@@ -1,70 +1,73 @@
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 29
-
+    compileSdk 34
     defaultConfig {
+        namespace "plugin.pasteboard" // This is the package name of the plugin
+
         minSdkVersion 15
-        targetSdkVersion 29
         versionCode 1
         versionName "1.0"
     }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+
 }
 
 dependencies {
     implementation ':Corona@aar'
 }
 
-
-task exportPluginJar() {
-    group "Corona-dev"
-    dependsOn assemble
+def buildDirectory = getLayout().getBuildDirectory().asFile.get()
+tasks.register("extractPluginJar") {
+    group "Solar2Dev"
+    dependsOn assembleRelease
     doLast {
         copy {
             from {
-                zipTree("$buildDir/outputs/aar/${project.name}-release.aar").matching {
+                zipTree("$buildDirectory/outputs/aar/${project.name}-release.aar").matching {
                     include 'classes.jar'
                 }.singleFile
             }
-            into "$buildDir/outputs"
-
-            File pluginManifestFile = file("src/main/AndroidManifest.xml")
-            if (pluginManifestFile.exists()) {
-                String manifestContents = pluginManifestFile.text
-                def pluginManifestXml = new XmlSlurper().parseText(manifestContents)
-                String packageName = pluginManifestXml.@package.toString()
-                rename "classes.jar", "${packageName}.jar"
-            } else {
-                rename "classes.jar", "plugin.jar"
-            }
-            println("Extracted to : ${file("$buildDir/outputs")}")
+            into "$buildDirectory/outputs/"
+            String packageName = android.namespace
+            rename "classes.jar", "${packageName}.jar"
         }
     }
 }
 
-task deployPluginToDirectory() {
-    group "Corona-dev"
-    dependsOn assemble
-    doLast {
-        copy {
-            from {
-                zipTree("$buildDir/outputs/aar/${project.name}-release.aar").matching {
-                    include 'classes.jar'
-                }.singleFile
-            }
-            into "$buildDir/outputs/../../../../../plugins/2013.2090/android/"
+// This creates archive for plugin so it can be used by Simulator from build.settings
+// by deploying it directly to Solar2DPlugins directory. This is first in line location
+// to retrieve plugins, so will overshadow online directory/store downloads.
+def providerId = 'com.solar2d'
+tasks.register("deployToLocalSolar2DRepo", Tar) {
+    group "Solar2Dev"
 
-            File pluginManifestFile = file("src/main/AndroidManifest.xml")
-            if (pluginManifestFile.exists()) {
-                String manifestContents = pluginManifestFile.text
-                def pluginManifestXml = new XmlSlurper().parseText(manifestContents)
-                String packageName = pluginManifestXml.@package.toString()
-                rename "classes.jar", "${packageName}.jar"
-            } else {
-                rename "classes.jar", "plugin.jar"
-            }
-        }
+    dependsOn assembleRelease
+
+    File pluginManifestFile = file("src/main/AndroidManifest.xml")
+    String manifestContents = pluginManifestFile.text
+    def pluginManifestXml = new XmlSlurper().parseText(manifestContents)
+    String packageName = android.namespace
+
+    compression = Compression.GZIP
+    archiveFileName = "data.tgz"
+    def rootS2DP
+    if (System.env.APP_DATA) {
+        rootS2DP = System.env.APP_DATA
+    } else {
+        rootS2DP = System.env.HOME
+    }
+    def dst = file("$rootS2DP/Solar2DPlugins/$providerId/$packageName/android")
+    destinationDirectory = dst
+
+    into("/") {
+        from("$buildDirectory/outputs/aar")
+        include("${project.name}-release.aar")
+    }
+    doLast {
+        println("\n\n\n== !!! IMPORTANT !!! ==\nMake sure to delete plugin when done: $dst\nThis plugin will override any Solar2Directory plugin, or plugin from any other source")
     }
 }
-
-assemble.finalizedBy(exportPluginJar)
