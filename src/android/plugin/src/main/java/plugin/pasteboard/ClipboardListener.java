@@ -28,8 +28,11 @@ public class ClipboardListener {
         // If the Clipboard contains data, save it to shared
         if (clipboardManager.hasPrimaryClip()) {
             android.content.ClipData clipData = clipboardManager.getPrimaryClip();
-            android.content.ClipData.Item item = clipData.getItemAt(0);
-            shared.setCurrentPasteboardItem(shared.ApiLevel11.coerceToString(context, item));
+            // Check if clipData is not null
+            if (clipData != null) {
+                android.content.ClipData.Item item = clipData.getItemAt(0);
+                shared.setCurrentPasteboardItem(shared.ApiLevel11.coerceToString(context, item));
+            }
         }
     }
 
