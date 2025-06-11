@@ -5,6 +5,7 @@ settings =
 		default = "portrait",
 		supported = { "portrait" }
 	},
+	
 	iphone =
 	{
 		xcassets = "Images.xcassets",
@@ -13,4 +14,12 @@ settings =
 			UILaunchStoryboardName = "LaunchScreen",
 		},
 	},
+
+	plugins =
+    	{
+        	["plugin.pasteboard"] =
+        	{
+            		publisherId = "com.coronalabs",
+        	},
+    	},
 }
